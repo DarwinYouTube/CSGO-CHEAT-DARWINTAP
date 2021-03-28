@@ -62,6 +62,7 @@ void InitImGui(LPDIRECT3DDEVICE9 pDevice)
     ImGui::myStyleColor();
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF(xorstr("C:\\Windows\\Fonts\\Arial.ttf"), 20, NULL, io.Fonts->GetGlyphRangesCyrillic());
+    io.ConfigFlags = ImGuiConfigFlags_NoMouseCursorChange;
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX9_Init(pDevice);
 }
@@ -326,7 +327,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        auto flags = ImGuiConfigFlags_NoMouseCursorChange | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiConfigFlags_NoMouseCursorChange;
+        auto flags = ImGuiConfigFlags_NoMouseCursorChange | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
 
         ImGui::Begin(xorstr("DarwinTap"), nullptr, flags);
         ImGui::Checkbox(xorstr(u8"Коробка"), &espbox);
