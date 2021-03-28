@@ -83,7 +83,7 @@ bool rcs = false;
 float rcs_amount = 0;
 
 // Коробка настройка
-float boxwidth = 0.5f;
+float boxwidth = 1.f;
 int boxThickness = 2;
 int boxAlpha = 255;
 
@@ -312,8 +312,8 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
     // Unhook
     if (GetAsyncKeyState(VK_END)) {
+
         kiero::shutdown();
-        return 0;
     }
 
     // Open Menu

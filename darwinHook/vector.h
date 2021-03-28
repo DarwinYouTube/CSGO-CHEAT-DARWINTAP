@@ -57,6 +57,6 @@ struct BoneMatrix_t {
 
 struct ColorStr {
 
-	int r = 255, g = 255, b = 0;
+	int r = 0, g = 255, b = 255;
 
 };
