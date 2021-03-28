@@ -61,7 +61,6 @@ void InitImGui(LPDIRECT3DDEVICE9 pDevice)
     ImGui::CreateContext();
     ImGui::myStyleColor();
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags = ImGuiConfigFlags_NoMouseCursorChange;
     io.Fonts->AddFontFromFileTTF(xorstr("C:\\Windows\\Fonts\\Arial.ttf"), 20, NULL, io.Fonts->GetGlyphRangesCyrillic());
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX9_Init(pDevice);
@@ -70,6 +69,7 @@ void InitImGui(LPDIRECT3DDEVICE9 pDevice)
 // Функций
 bool espbox = false;
 bool glow = false;
+bool aimbot = false;
 bool triggerbot = false;
 bool bunnyhop = false;
 bool antiflash = false;
@@ -321,11 +321,14 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
     }
 
     if (menu) {
+
         ImGui_ImplDX9_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin(xorstr("DarwinTap"));
+        auto flags = ImGuiConfigFlags_NoMouseCursorChange | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiConfigFlags_NoMouseCursorChange;
+
+        ImGui::Begin(xorstr("DarwinTap"), nullptr, flags);
         ImGui::Checkbox(xorstr(u8"Коробка"), &espbox);
         if (espbox) {
             ImGui::SliderInt("R", &BoxColor.r, 0, 255);
@@ -334,6 +337,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
             ImGui::SliderFloat(xorstr(u8"Ширина Коробки"), &boxwidth, 0.00f, 1.00f);
         }
         ImGui::Checkbox(xorstr(u8"Обводка"), &glow);
+        ImGui::Checkbox(xorstr(u8"Аимбот"), &aimbot);
         ImGui::Checkbox(xorstr(u8"ТриггерБот"), &triggerbot);
         ImGui::Checkbox(xorstr(u8"Баннихоп"), &bunnyhop);
         ImGui::Checkbox(xorstr(u8"Анти Флешка"), &antiflash);
