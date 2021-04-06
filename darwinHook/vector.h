@@ -20,6 +20,9 @@ struct Vec3 {
 	Vec3 operator*(float d) {
 		return { x * d, y * d, z * d };
 	}
+	Vec3 operator/(float d) {
+		return {x / d, y / d, z / d};
+	}
 
 	void normalize() {
 		while (y < -180) {
@@ -34,6 +37,9 @@ struct Vec3 {
 		}
 		while (x < -89) {
 			x = -89;
+		}
+		if (z != 0) {
+			z = 0;
 		}
 	}
 };
@@ -53,10 +59,4 @@ struct BoneMatrix_t {
 	float y;
 	byte pad3[12];
 	float z;
-};
-
-struct ColorStr {
-
-	int r = 0, g = 255, b = 255;
-
 };

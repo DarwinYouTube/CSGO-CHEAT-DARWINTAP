@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="color.h" />
     <ClInclude Include="drawing.h" />
     <ClInclude Include="vector.h" />
     <ClInclude Include="imgui\imconfig.h" />

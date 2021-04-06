@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "includes.h"
+#include "color.h"
 
 typedef long(__stdcall* EndScene)(LPDIRECT3DDEVICE9);
 static EndScene oEndScene = NULL;
@@ -7,7 +8,6 @@ LPDIRECT3DDEVICE9 pDevice = nullptr;
 
 WNDPROC oWndProc;
 static HWND window = NULL;
-ColorStr BoxColor;
 
 int screenX = GetSystemMetrics(SM_CXSCREEN);
 int screenY = GetSystemMetrics(SM_CYSCREEN);
@@ -80,17 +80,32 @@ bool thirdperson = false;
 bool rcs = false;
 
 // Значения
-float rcs_amount = 0;
+int aimbotBone = 9;
+float rcs_amount = 1.f;
+float aimbotRCS = 1.f;
+float aimbotSmoothing = 1.f;
 
 // Коробка настройка
-float boxwidth = 1.f;
+float boxwidth = 0.5f;
 int boxThickness = 2;
-int boxAlpha = 255;
 
 
 bool init = false;
 bool menu = true;
 bool antialias_all = true;
+
+Vec3 CalcAngle(Vec3 src, Vec3 dst) {
+    float PI = 3.14159f;
+
+    Vec3 angle;
+    Vec3 a = { dst.x - src.x, dst.y - src.y, dst.z - src.z };
+    float ah = sqrt(a.x * a.x + a.y * a.y);
+    angle.x = atan2(-a.z, ah) * 180 / PI;
+    angle.y = atan2(a.y, a.x) * 180 / PI;
+    angle.z = 0;
+
+    return angle;
+}
 
 long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 {
@@ -148,8 +163,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                                     HeadPosition.y,
                                     (ScreenPosition.y - HeadPosition.y) * boxwidth,
                                     ScreenPosition.y - HeadPosition.y,
-                                    boxThickness, antialias_all, D3DCOLOR_ARGB(boxAlpha, BoxColor.r, BoxColor.g, BoxColor.b)
-
+                                    boxThickness, antialias_all, FLOAT4TOD3DCOLOR(Colors::boxColor)
                                 );
                             }
                         }
@@ -174,7 +188,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
             int localTeam = *(int*)(localPlayer + m_iTeamNum);
 
-            for (int x = 0; x < 32; x++) {
+            for (int x = 0; x < 16; x++) {
                 int Entity = *(int*)(BaseAddress + dwEntityList + x * 0x10);
                 if (Entity != NULL) {
 
@@ -183,13 +197,74 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
                     if (entityTeam != localTeam) {
 
-                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0x4) = 0.f;
-                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0x8) = 1.f;
-                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0xC) = 1.f;
-                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0x10) = 1.9f;
+                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0x4) = Colors::glowColor[0]; // R
+                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0x8) = Colors::glowColor[1]; // G
+                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0xC) = Colors::glowColor[2]; // B
+                        *(float*)(GlowObjectManager + glowIndex * 0x38 + 0x10) = 1.f; // A  
                     }
                     *(bool*)(GlowObjectManager + glowIndex * 0x38 + 0x24) = true;
                     *(bool*)(GlowObjectManager + glowIndex * 0x38 + 0x25) = false;
+                }
+            }
+        }
+    }
+
+    if (aimbot) {
+        float closesEnt = 99999;
+        uintptr_t bestEntity = NULL;
+
+        uintptr_t localPlayer = *(uintptr_t*)(BaseAddress + dwLocalPlayer);
+        Vec3* viewAngles = (Vec3*)(*(uintptr_t*)(baseEngine + dwClientState) + dwClientState_ViewAngles);
+        if (localPlayer != NULL) {
+
+            for (int i = 0; i < 16; i++)
+            {
+                uintptr_t Entity = *(uintptr_t*)(BaseAddress + dwEntityList + (i * 0x10));
+                if (Entity != NULL) {
+
+                    Vec3 LocalHeadPos;
+                    Vec3 EntityBonePos;
+
+                    uintptr_t EBonematrixBase = *(uintptr_t*)(Entity + m_dwBoneMatrix);
+                    BoneMatrix_t EntityBone = *(BoneMatrix_t*)(EBonematrixBase + (sizeof(EntityBone) * aimbotBone));
+                    EntityBonePos = { EntityBone.x, EntityBone.y, EntityBone.z };
+
+                    uintptr_t LBonematrixBase = *(uintptr_t*)(localPlayer + m_dwBoneMatrix);
+                    BoneMatrix_t LocalBone = *(BoneMatrix_t*)(LBonematrixBase + (sizeof(LocalBone) * 9));
+                    LocalHeadPos = { LocalBone.x, LocalBone.y, LocalBone.z };
+
+                    Vec3 TempAngles = CalcAngle(LocalHeadPos, EntityBonePos);
+                    Vec2 ScreenPosition;
+                    float vMatrix[16];
+                    memcpy(&vMatrix, (PBYTE*)(BaseAddress + dwViewMatrix), sizeof(vMatrix));
+                    if (WorldTooScreen(EntityBonePos, ScreenPosition, vMatrix, screenX, screenY)) {
+                        float dist = sqrt(powf((screenX / 2 - ScreenPosition.x), 2) + powf((screenY / 2 - ScreenPosition.y), 2));
+
+                        if (bestEntity == Entity || dist < closesEnt) {
+
+                            int localTeam = *(int*)(localPlayer + m_iTeamNum);
+                            int entityTeam = *(int*)(Entity + m_iTeamNum);
+
+                            if (entityTeam != localTeam) {
+                                bestEntity = Entity;
+                                closesEnt = dist;
+
+                                if (*(int*)(Entity + m_iHealth) > 0) {
+                                    Vec3* punchAngleOffs = (Vec3*)(localPlayer + m_aimPunchAngle);
+                                    Vec3 punchAngle = *punchAngleOffs * (aimbotRCS * 2);
+                                    TempAngles = TempAngles - punchAngle;
+
+                                    Vec3 CurrAngles = *viewAngles;
+                                    Vec3 Delta = TempAngles - CurrAngles;
+                                    Vec3 AimAngle = CurrAngles + (Delta / (aimbotSmoothing * 50));
+                                    AimAngle.normalize();
+                                    if (GetAsyncKeyState(VK_LBUTTON) && !GetAsyncKeyState(VK_RBUTTON)) {
+                                        *viewAngles = AimAngle;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -203,7 +278,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
             int crosshairID = *(int*)(localPlayer + m_iCrosshairId);
             int localTeam = *(int*)(localPlayer + m_iTeamNum);
 
-            if (crosshairID > 0 && crosshairID < 32) {
+            if (crosshairID > 0 && crosshairID < 16) {
 
                 int Entity = *(int*)(BaseAddress + dwEntityList + (crosshairID - 1) * 0x10);
                 if (Entity != NULL) {
@@ -231,7 +306,8 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
             if (GetAsyncKeyState(VK_SPACE) && flags & 1 << 0) {
 
-                *(DWORD*)(BaseAddress + dwForceJump) = 6;
+                *(DWORD*)(BaseAddress + dwForceJump) = 5;
+                *(DWORD*)(BaseAddress + dwForceJump) = 4;
             }
         }
     }
@@ -257,7 +333,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
             int localTeam = *(int*)(localPlayer + m_iTeamNum);
 
-            for (int x = 0; x < 32; x++) {
+            for (int x = 0; x < 16; x++) {
 
                 int Entity = *(int*)(BaseAddress + dwEntityList + (x - 1) * 0x10);
 
@@ -275,7 +351,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
     }
 
     if (awpcrosshair) {
-        DrawFilledRect(screenX / 2 - 2, screenY / 2 - 2, 4, 4, D3DCOLOR_ARGB(255, 255, 255, 255));
+        DrawFilledRect(screenX / 2 - 2, screenY / 2 - 2, 4, 4, FLOAT4TOD3DCOLOR(Colors::crosshairColor));
     }
 
     if (thirdperson) {
@@ -327,31 +403,70 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        auto flags = ImGuiConfigFlags_NoMouseCursorChange | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize;
+        auto flags = ImGuiConfigFlags_NoMouseCursorChange | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize;
+        static int ttab;
 
         ImGui::Begin(xorstr("DarwinTap"), nullptr, flags);
-        ImGui::Checkbox(xorstr(u8"Коробка"), &espbox);
-        if (espbox) {
-            ImGui::SliderInt("R", &BoxColor.r, 0, 255);
-            ImGui::SliderInt("G", &BoxColor.g, 0, 255);
-            ImGui::SliderInt("B", &BoxColor.b, 0, 255);
-            ImGui::SliderFloat(xorstr(u8"Ширина Коробки"), &boxwidth, 0.00f, 1.00f);
-        }
-        ImGui::Checkbox(xorstr(u8"Обводка"), &glow);
-        ImGui::Checkbox(xorstr(u8"Аимбот"), &aimbot);
-        ImGui::Checkbox(xorstr(u8"ТриггерБот"), &triggerbot);
-        ImGui::Checkbox(xorstr(u8"Баннихоп"), &bunnyhop);
-        ImGui::Checkbox(xorstr(u8"Анти Флешка"), &antiflash);
-        ImGui::Checkbox(xorstr(u8"Враги на Радаре"), &radarhack);
-        ImGui::Checkbox(xorstr(u8"Авп Прицел"), &awpcrosshair);
-        ImGui::Checkbox(xorstr(u8"Вид от 3 лица"), &thirdperson);
-        ImGui::Spacing();
-        ImGui::Checkbox(xorstr(u8"Контроль отдачи"), &rcs);
-        if (rcs) {
-            ImGui::SliderFloat(xorstr(u8"Значение отдачи"), &rcs_amount, 0, 1);
-        }
-        ImGui::End();
 
+        if (ImGui::Button(xorstr(u8"Аимбот"), ImVec2(100.f, 0.f))) {
+            ttab = 1;
+        }
+        ImGui::SameLine(0.f, 2.f);
+        if (ImGui::Button(xorstr(u8"Визуалы"), ImVec2(100.f, 0.f))) {
+            ttab = 2;
+        }
+        ImGui::SameLine(0.f, 2.f);
+        if (ImGui::Button(xorstr(u8"Другое"), ImVec2(100.f, 0.f))) {
+            ttab = 3;
+        }
+        ImGui::SameLine(0.f, 2.f);
+        if (ImGui::Button(xorstr(u8"Цвета"), ImVec2(100.f, 0.f))) {
+            ttab = 4;
+        }
+
+        if (ttab == 1) {
+            ImGui::Checkbox(xorstr(u8"Аимбот"), &aimbot);
+            if (aimbot) {
+                ImGui::SliderFloat(xorstr(u8"Аимбот RCS"), &aimbotRCS, 0.f, 1.f);
+                ImGui::SliderFloat(xorstr(u8"Аимбот Smoothing"), &aimbotSmoothing, 0.f, 1.f);
+                if (ImGui::Button(xorstr(u8"Голова"))) {
+                    aimbotBone = 9;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(xorstr(u8"Шея"))) {
+                    aimbotBone = 3;
+                }
+            }
+            ImGui::Checkbox(xorstr(u8"ТриггерБот"), &triggerbot);
+            ImGui::Checkbox(xorstr(u8"Контроль отдачи"), &rcs);
+        }
+        else if (ttab == 2) {
+            ImGui::Checkbox(xorstr(u8"Коробка"), &espbox);
+            ImGui::Checkbox(xorstr(u8"Обводка"), &glow);
+            ImGui::Checkbox(xorstr(u8"Прицел"), &awpcrosshair);
+        }
+        else if (ttab == 3) {
+            ImGui::Checkbox(xorstr(u8"Баннихоп"), &bunnyhop);
+            ImGui::Checkbox(xorstr(u8"Анти Флешка"), &antiflash);
+            ImGui::Checkbox(xorstr(u8"Враги на Радаре"), &radarhack);
+            ImGui::Checkbox(xorstr(u8"Вид от 3 лица"), &thirdperson);
+            if (ImGui::Button(xorstr(u8"Загрузить Конфиг Дарвина"))) {
+                espbox = true;
+                glow = true;
+                bunnyhop = true;
+                radarhack = true;
+                antiflash = true;
+                rcs = true;
+                awpcrosshair = true;
+            }
+        }
+        else if (ttab == 4) {
+            ImGui::ColorEdit3(xorstr(u8"Цвет Коробки"), Colors::boxColor);
+            ImGui::ColorEdit3(xorstr(u8"Цвет Обводки"), Colors::glowColor);
+            ImGui::ColorEdit3(xorstr(u8"Цвет Прицела"), Colors::crosshairColor);
+        }
+
+        ImGui::End();
         ImGui::EndFrame();
         ImGui::Render();
         ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
