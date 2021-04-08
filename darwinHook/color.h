@@ -5,7 +5,7 @@ D3DCOLOR FLOAT4TOD3DCOLOR(float Col[])
 	float r = (col32_no_alpha >> 16) & 255;
 	float g = (col32_no_alpha >> 8) & 255;
 	float b = col32_no_alpha & 255;
-	return D3DCOLOR_ARGB((int)a, (int)r, (int)g, (int)b);
+	return D3DCOLOR_ARGB((int)a, (int)b, (int)g, (int)r);
 }
 
 namespace Colors {

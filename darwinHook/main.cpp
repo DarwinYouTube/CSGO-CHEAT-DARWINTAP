@@ -426,6 +426,11 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
             *(int*)(localPlayer + m_iObserverMode) = 1;
 
+            if (thirdperson == false) {
+
+                *(int*)(localPlayer + m_iObserverMode) = 0;
+
+            }
         }
     }
 
@@ -434,8 +439,8 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
         if (localPlayer != NULL) {
 
-            int iFov = *(int*)(localPlayer + m_iDefaultFOV);
             *(int*)(localPlayer + m_iDefaultFOV) = fov;
+
         }
     }
 
