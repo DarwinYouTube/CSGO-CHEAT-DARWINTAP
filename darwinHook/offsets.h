@@ -1,9 +1,6 @@
+#pragma once
 #include <cstddef>
-#include <cstdint>
 
-
-
-	constexpr ::std::int64_t timestamp = 1617107454;
 		constexpr ::std::ptrdiff_t cs_gamerules_data = 0x0;
 		constexpr ::std::ptrdiff_t m_ArmorValue = 0xB378;
 		constexpr ::std::ptrdiff_t m_Collision = 0x320;
@@ -141,7 +138,7 @@
 		constexpr ::std::ptrdiff_t dwZoomSensitivityRatioPtr = 0xD96D70;
 		constexpr ::std::ptrdiff_t dwbSendPackets = 0xD749A;
 		constexpr ::std::ptrdiff_t dwppDirect3DDevice9 = 0xA7050;
-		constexpr ::std::ptrdiff_t find_hud_element = 0x2843E320;
+		constexpr ::std::ptrdiff_t find_hud_element = 0x3101E320;
 		constexpr ::std::ptrdiff_t force_update_spectator_glow = 0x3AD962;
 		constexpr ::std::ptrdiff_t interface_engine_cvar = 0x3E9EC;
 		constexpr ::std::ptrdiff_t is_c4_owner = 0x3BA430;

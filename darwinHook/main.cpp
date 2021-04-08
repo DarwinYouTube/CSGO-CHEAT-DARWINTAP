@@ -69,6 +69,8 @@ void InitImGui(LPDIRECT3DDEVICE9 pDevice)
 
 // Функций
 bool espbox = false;
+bool cornerbox = false;
+bool fillbox = false;
 bool glow = false;
 bool aimbot = false;
 bool triggerbot = false;
@@ -77,18 +79,20 @@ bool antiflash = false;
 bool radarhack = false;
 bool awpcrosshair = false;
 bool thirdperson = false;
+bool fovchanger = false;
 bool rcs = false;
 
 // Значения
 int aimbotBone = 9;
-float rcs_amount = 1.f;
 float aimbotRCS = 1.f;
 float aimbotSmoothing = 1.f;
+float rcs_amount = 1.f;
+int fov = 90;
 
 // Коробка настройка
 float boxwidth = 0.5f;
 int boxThickness = 2;
-
+float popcorn = 0.5f;
 
 bool init = false;
 bool menu = true;
@@ -132,7 +136,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
             Vec2 ScreenPosition;
             Vec2 HeadPosition;
 
-            for (int x = 0; x < 32; x++) {
+            for (int x = 1; x < 32; x++) {
 
                 uintptr_t Entity = *(uintptr_t*)(BaseAddress + dwEntityList + x * 0x10);
                 if (Entity != NULL) {
@@ -165,6 +169,14 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                                     ScreenPosition.y - HeadPosition.y,
                                     boxThickness, antialias_all, FLOAT4TOD3DCOLOR(Colors::boxColor)
                                 );
+
+                                if (fillbox) {
+                                    DrawFilledRect(
+                                        ScreenPosition.x - (((ScreenPosition.y - HeadPosition.y) * boxwidth) / 2),
+                                        HeadPosition.y,
+                                        (ScreenPosition.y - HeadPosition.y) * boxwidth,
+                                        ScreenPosition.y - HeadPosition.y, D3DCOLOR_ARGB(42, 0, 0, 0));
+                                }
                             }
                         }
                     }
@@ -172,14 +184,67 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
             }
         }
     }
-          
-                    
 
+    if (cornerbox) {
 
+        uintptr_t localPlayer = *(uintptr_t*)(BaseAddress + dwLocalPlayer);
+        if (localPlayer != NULL) {
 
+            int localTeam = *(int*)(localPlayer + m_iTeamNum);
+
+            Vec2 ScreenPosition;
+            Vec2 HeadPosition;
+
+            for (int x = 1; x < 32; x++) {
+
+                uintptr_t Entity = *(uintptr_t*)(BaseAddress + dwEntityList + x * 0x10);
+                if (Entity != NULL) {
+
+                    int entityTeam = *(int*)(Entity + m_iTeamNum);
+                    int entityHealth = *(int*)(Entity + m_iHealth);
+
+                    // Делаем что бы была вражеская команда
+                    if (entityTeam != localTeam && entityHealth > 0 && entityHealth <= 100) {
+
+                        Vec3 EntityLocation = *(Vec3*)(Entity + m_vecOrigin);
+                        float vMatrix[16];
+                        memcpy(&vMatrix, (PBYTE*)(BaseAddress + dwViewMatrix), sizeof(vMatrix));
+                        if (WorldTooScreen(EntityLocation, ScreenPosition, vMatrix, screenX, screenY)) {
+
+                            uintptr_t BoneMatrix_Base = *(uintptr_t*)(Entity + m_dwBoneMatrix);
+                            BoneMatrix_t Bone = *(BoneMatrix_t*)(BoneMatrix_Base + sizeof(Bone) * 9);
+                            Vec3 Location = { Bone.x, Bone.y, Bone.z + 10 };
+                            Vec2 ScreenCoords;
+                            float vMatrix[16];
+                            memcpy(&vMatrix, (PBYTE*)(BaseAddress + dwViewMatrix), sizeof(vMatrix));
+                            if (WorldTooScreen(Location, ScreenCoords, vMatrix, screenX, screenY))
+                            {
+
+                                HeadPosition = ScreenCoords;
+                                CornerBox(
+                                    ScreenPosition.x - (((ScreenPosition.y - HeadPosition.y) * boxwidth) / 2),
+                                    HeadPosition.y,
+                                    (ScreenPosition.y - HeadPosition.y) * boxwidth,
+                                    ScreenPosition.y - HeadPosition.y,
+                                    boxThickness, popcorn / 2, antialias_all, FLOAT4TOD3DCOLOR(Colors::cornerColor)
+                                );
+
+                                if (fillbox) {
+                                    DrawFilledRect(
+                                        ScreenPosition.x - (((ScreenPosition.y - HeadPosition.y) * boxwidth) / 2),
+                                        HeadPosition.y,
+                                        (ScreenPosition.y - HeadPosition.y) * boxwidth,
+                                        ScreenPosition.y - HeadPosition.y, D3DCOLOR_ARGB(42, 0, 0, 0));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+            
        
-
-
     if (glow) {
         int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
         int GlowObjectManager = *(int*)(BaseAddress + dwGlowObjectManager);
@@ -188,7 +253,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
             int localTeam = *(int*)(localPlayer + m_iTeamNum);
 
-            for (int x = 0; x < 16; x++) {
+            for (int x = 1; x < 32; x++) {
                 int Entity = *(int*)(BaseAddress + dwEntityList + x * 0x10);
                 if (Entity != NULL) {
 
@@ -217,7 +282,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         Vec3* viewAngles = (Vec3*)(*(uintptr_t*)(baseEngine + dwClientState) + dwClientState_ViewAngles);
         if (localPlayer != NULL) {
 
-            for (int i = 0; i < 16; i++)
+            for (int i = 1; i < 16; i++)
             {
                 uintptr_t Entity = *(uintptr_t*)(BaseAddress + dwEntityList + (i * 0x10));
                 if (Entity != NULL) {
@@ -278,7 +343,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
             int crosshairID = *(int*)(localPlayer + m_iCrosshairId);
             int localTeam = *(int*)(localPlayer + m_iTeamNum);
 
-            if (crosshairID > 0 && crosshairID < 16) {
+            if (crosshairID > 0 && crosshairID < 32) {
 
                 int Entity = *(int*)(BaseAddress + dwEntityList + (crosshairID - 1) * 0x10);
                 if (Entity != NULL) {
@@ -333,7 +398,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
             int localTeam = *(int*)(localPlayer + m_iTeamNum);
 
-            for (int x = 0; x < 16; x++) {
+            for (int x = 1; x < 32; x++) {
 
                 int Entity = *(int*)(BaseAddress + dwEntityList + (x - 1) * 0x10);
 
@@ -361,6 +426,16 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
 
             *(int*)(localPlayer + m_iObserverMode) = 1;
 
+        }
+    }
+
+    if (fovchanger) {
+        
+        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
+        if (localPlayer != NULL) {
+
+            int iFov = *(int*)(localPlayer + m_iDefaultFOV);
+            *(int*)(localPlayer + m_iDefaultFOV) = fov;
         }
     }
 
@@ -393,7 +468,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
     }
 
     // Open Menu
-    if (GetAsyncKeyState(VK_NUMPAD1) & 1) {
+    if (GetAsyncKeyState(VK_HOME) & 1) {
         menu = !menu;
     }
 
@@ -442,6 +517,8 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         }
         else if (ttab == 2) {
             ImGui::Checkbox(xorstr(u8"Коробка"), &espbox);
+            ImGui::Checkbox(xorstr(u8"Угловая Коробка"), &cornerbox);
+            ImGui::Checkbox(xorstr(u8"Темная Коробка"), &fillbox);
             ImGui::Checkbox(xorstr(u8"Обводка"), &glow);
             ImGui::Checkbox(xorstr(u8"Прицел"), &awpcrosshair);
         }
@@ -450,6 +527,10 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
             ImGui::Checkbox(xorstr(u8"Анти Флешка"), &antiflash);
             ImGui::Checkbox(xorstr(u8"Враги на Радаре"), &radarhack);
             ImGui::Checkbox(xorstr(u8"Вид от 3 лица"), &thirdperson);
+            ImGui::Checkbox(xorstr(u8"Изменить FOV"), &fovchanger);
+            if (fovchanger) {
+                ImGui::SliderInt(xorstr(u8"Значение FOV"), &fov, -180, 180);
+            }
             if (ImGui::Button(xorstr(u8"Загрузить Конфиг Дарвина"))) {
                 espbox = true;
                 glow = true;
@@ -462,6 +543,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         }
         else if (ttab == 4) {
             ImGui::ColorEdit3(xorstr(u8"Цвет Коробки"), Colors::boxColor);
+            ImGui::ColorEdit3(xorstr(u8"Угл.Коробка"), Colors::cornerColor);
             ImGui::ColorEdit3(xorstr(u8"Цвет Обводки"), Colors::glowColor);
             ImGui::ColorEdit3(xorstr(u8"Цвет Прицела"), Colors::crosshairColor);
         }

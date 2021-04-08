@@ -24,3 +24,19 @@ void DrawBox(int x, int y, int w, int h, int thickness, bool antialias, D3DCOLOR
 	DrawLine(x, y, x, y + h, thickness, antialias, color);
 	DrawLine(x + w, y, x + w, y + h, thickness, antialias, color);
 }
+
+void CornerBox(int x, int y, int w, int h, int thickness, float cornered, bool antialias, D3DCOLOR color) {
+
+	// Left Top
+	DrawLine(x, y, x + (w * cornered), y, thickness, antialias, color);
+	DrawLine(x, y, x, y + (h * cornered), thickness, antialias, color);
+	// Left Bottom
+	DrawLine(x, y + h, x + (w * cornered), y + h, thickness, antialias, color);
+	DrawLine(x, y + h, x, (y + h) - (h * cornered), thickness, antialias, color);
+	// Right Top
+	DrawLine(x + w, y, (x + w) - (w * cornered), y, thickness, antialias, color);
+	DrawLine(x + w, y, x + w, y + (h * cornered), thickness, antialias, color);
+	// Right Bottom
+	DrawLine(x + w, y + h, (x + w) - (w * cornered), y + h, thickness, antialias, color);
+	DrawLine(x + w, y + h, x + w, (y + h) - (h * cornered), thickness, antialias, color);
+}
