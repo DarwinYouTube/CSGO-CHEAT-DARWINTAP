@@ -21,5 +21,5 @@ Kiero Hook:
 Darwin:
 - https://www.youtube.com/channel/UCXIqbvpZc7SHkjO1NZlcHjw
 
-# ScreenShot
+# Screenshot
 ![alt text](https://i.imgur.com/Y5IwjZR.png)
