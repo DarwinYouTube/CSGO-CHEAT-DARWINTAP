@@ -14,6 +14,7 @@ namespace Colors {
 	float boxColor[] = {255, 255, 255, 255}; 
 	float cornerColor[] = { 255, 255, 255, 255 }; 
 	float crosshairColor[] = { 255, 255, 255, 255 };
+	float aimbotFovColor[] = { 255, 255, 255, 255 };
 	//RGB
 	float glowColor[] = { 255, 255, 255 }; 
 

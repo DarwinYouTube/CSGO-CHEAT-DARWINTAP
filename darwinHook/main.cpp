@@ -74,7 +74,6 @@ bool fillbox = false;
 bool glow = false;
 bool aimbot = false;
 bool triggerbot = false;
-bool bunnyhop = false;
 bool antiflash = false;
 bool radarhack = false;
 bool awpcrosshair = false;
@@ -88,6 +87,7 @@ float aimbotRCS = 1.f;
 float aimbotSmoothing = 1.f;
 float rcs_amount = 1.f;
 int fov = 90;
+int aimfov = 100;
 
 // Коробка настройка
 float boxwidth = 0.5f;
@@ -324,7 +324,8 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                                     Vec3 AimAngle = CurrAngles + (Delta / (aimbotSmoothing * 50));
                                     AimAngle.normalize();
                                     if (GetAsyncKeyState(VK_LBUTTON) && !GetAsyncKeyState(VK_RBUTTON)) {
-                                        *viewAngles = AimAngle;
+
+                                                *viewAngles = AimAngle;
                                     }
                                 }
                             }
@@ -359,21 +360,6 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                 }
             }
 
-        }
-    }
-
-    if (bunnyhop) {
-
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
-
-            DWORD flags = *(DWORD*)(localPlayer + m_fFlags);
-
-            if (GetAsyncKeyState(VK_SPACE) && flags & 1 << 0) {
-
-                *(DWORD*)(BaseAddress + dwForceJump) = 5;
-                *(DWORD*)(BaseAddress + dwForceJump) = 4;
-            }
         }
     }
 
@@ -509,13 +495,6 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
             if (aimbot) {
                 ImGui::SliderFloat(xorstr(u8"Аимбот RCS"), &aimbotRCS, 0.f, 1.f);
                 ImGui::SliderFloat(xorstr(u8"Аимбот Smoothing"), &aimbotSmoothing, 0.f, 1.f);
-                if (ImGui::Button(xorstr(u8"Голова"))) {
-                    aimbotBone = 9;
-                }
-                ImGui::SameLine();
-                if (ImGui::Button(xorstr(u8"Шея"))) {
-                    aimbotBone = 3;
-                }
             }
             ImGui::Checkbox(xorstr(u8"ТриггерБот"), &triggerbot);
             ImGui::Checkbox(xorstr(u8"Контроль отдачи"), &rcs);
@@ -523,12 +502,10 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         else if (ttab == 2) {
             ImGui::Checkbox(xorstr(u8"Коробка"), &espbox);
             ImGui::Checkbox(xorstr(u8"Угловая Коробка"), &cornerbox);
-            ImGui::Checkbox(xorstr(u8"Темная Коробка"), &fillbox);
             ImGui::Checkbox(xorstr(u8"Обводка"), &glow);
             ImGui::Checkbox(xorstr(u8"Прицел"), &awpcrosshair);
         }
         else if (ttab == 3) {
-            ImGui::Checkbox(xorstr(u8"Баннихоп"), &bunnyhop);
             ImGui::Checkbox(xorstr(u8"Анти Флешка"), &antiflash);
             ImGui::Checkbox(xorstr(u8"Враги на Радаре"), &radarhack);
             ImGui::Checkbox(xorstr(u8"Вид от 3 лица"), &thirdperson);
@@ -537,13 +514,11 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                 ImGui::SliderInt(xorstr(u8"Значение FOV"), &fov, -180, 180);
             }
             if (ImGui::Button(xorstr(u8"Загрузить Конфиг Дарвина"))) {
-                espbox = true;
                 glow = true;
-                bunnyhop = true;
                 radarhack = true;
                 antiflash = true;
                 rcs = true;
-                awpcrosshair = true;
+                cornerbox = true;
             }
         }
         else if (ttab == 4) {
