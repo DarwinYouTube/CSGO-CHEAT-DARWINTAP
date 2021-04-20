@@ -1,4 +1,4 @@
-#include <cstdint>
+#include <cstddef>
 #include <cstddef>
 
 		constexpr ::std::ptrdiff_t cs_gamerules_data = 0x0;
@@ -138,7 +138,7 @@
 		constexpr ::std::ptrdiff_t dwZoomSensitivityRatioPtr = 0xD96D60;
 		constexpr ::std::ptrdiff_t dwbSendPackets = 0xD749A;
 		constexpr ::std::ptrdiff_t dwppDirect3DDevice9 = 0xA7050;
-		constexpr ::std::ptrdiff_t find_hud_element = 0x2D4FE320;
+		constexpr ::std::ptrdiff_t find_hud_element = 0x2FD9E320;
 		constexpr ::std::ptrdiff_t force_update_spectator_glow = 0x3AE412;
 		constexpr ::std::ptrdiff_t interface_engine_cvar = 0x3E9EC;
 		constexpr ::std::ptrdiff_t is_c4_owner = 0x3BAF00;

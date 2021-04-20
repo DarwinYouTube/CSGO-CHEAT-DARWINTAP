@@ -14,6 +14,8 @@ int screenY = GetSystemMetrics(SM_CYSCREEN);
 
 uintptr_t BaseAddress;
 uintptr_t baseEngine;
+uintptr_t LocalPlayer;
+uintptr_t Entity;
 int* iShotsFired;
 Vec3* aimRecoilPunch;
 Vec3 oPunch{ 0,0,0 };
@@ -125,21 +127,22 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         init = true;
     }
 
-    // Function
-    if (espbox) {
+    LocalPlayer = *(uintptr_t*)(BaseAddress + dwLocalPlayer);
+    if (LocalPlayer != NULL) {
 
-        uintptr_t localPlayer = *(uintptr_t*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
+        for (int x = 1; x < 32; x++) {
 
-            int localTeam = *(int*)(localPlayer + m_iTeamNum);
+            Entity = *(uintptr_t*)(BaseAddress + dwEntityList + x * 0x10);
+            if (Entity != NULL) {
 
-            Vec2 ScreenPosition;
-            Vec2 HeadPosition;
 
-            for (int x = 1; x < 32; x++) {
+                if (espbox) {
 
-                uintptr_t Entity = *(uintptr_t*)(BaseAddress + dwEntityList + x * 0x10);
-                if (Entity != NULL) {
+
+                    int localTeam = *(int*)(LocalPlayer + m_iTeamNum);
+
+                    Vec2 ScreenPosition;
+                    Vec2 HeadPosition;
 
                     int entityTeam = *(int*)(Entity + m_iTeamNum);
                     int entityHealth = *(int*)(Entity + m_iHealth);
@@ -169,36 +172,17 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                                     ScreenPosition.y - HeadPosition.y,
                                     boxThickness, antialias_all, FLOAT4TOD3DCOLOR(Colors::boxColor)
                                 );
-
-                                if (fillbox) {
-                                    DrawFilledRect(
-                                        ScreenPosition.x - (((ScreenPosition.y - HeadPosition.y) * boxwidth) / 2),
-                                        HeadPosition.y,
-                                        (ScreenPosition.y - HeadPosition.y) * boxwidth,
-                                        ScreenPosition.y - HeadPosition.y, D3DCOLOR_ARGB(42, 0, 0, 0));
-                                }
                             }
                         }
                     }
                 }
-            }
-        }
-    }
 
-    if (cornerbox) {
+                if (cornerbox) {
 
-        uintptr_t localPlayer = *(uintptr_t*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
+                    int localTeam = *(int*)(LocalPlayer + m_iTeamNum);
 
-            int localTeam = *(int*)(localPlayer + m_iTeamNum);
-
-            Vec2 ScreenPosition;
-            Vec2 HeadPosition;
-
-            for (int x = 1; x < 32; x++) {
-
-                uintptr_t Entity = *(uintptr_t*)(BaseAddress + dwEntityList + x * 0x10);
-                if (Entity != NULL) {
+                    Vec2 ScreenPosition;
+                    Vec2 HeadPosition;
 
                     int entityTeam = *(int*)(Entity + m_iTeamNum);
                     int entityHealth = *(int*)(Entity + m_iHealth);
@@ -228,34 +212,17 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                                     ScreenPosition.y - HeadPosition.y,
                                     boxThickness, popcorn / 2, antialias_all, FLOAT4TOD3DCOLOR(Colors::cornerColor)
                                 );
-
-                                if (fillbox) {
-                                    DrawFilledRect(
-                                        ScreenPosition.x - (((ScreenPosition.y - HeadPosition.y) * boxwidth) / 2),
-                                        HeadPosition.y,
-                                        (ScreenPosition.y - HeadPosition.y) * boxwidth,
-                                        ScreenPosition.y - HeadPosition.y, D3DCOLOR_ARGB(42, 0, 0, 0));
-                                }
                             }
                         }
                     }
                 }
-            }
-        }
-    }
-            
-       
-    if (glow) {
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        int GlowObjectManager = *(int*)(BaseAddress + dwGlowObjectManager);
 
-        if (localPlayer != NULL) {
+                if (glow) {
 
-            int localTeam = *(int*)(localPlayer + m_iTeamNum);
 
-            for (int x = 1; x < 32; x++) {
-                int Entity = *(int*)(BaseAddress + dwEntityList + x * 0x10);
-                if (Entity != NULL) {
+                    int GlowObjectManager = *(int*)(BaseAddress + dwGlowObjectManager);
+
+                    int localTeam = *(int*)(LocalPlayer + m_iTeamNum);
 
                     int entityTeam = *(int*)(Entity + m_iTeamNum);
                     int glowIndex = *(int*)(Entity + m_iGlowIndex);
@@ -270,125 +237,20 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                     *(bool*)(GlowObjectManager + glowIndex * 0x38 + 0x24) = true;
                     *(bool*)(GlowObjectManager + glowIndex * 0x38 + 0x25) = false;
                 }
-            }
-        }
-    }
 
-    if (aimbot) {
-        float closesEnt = 99999;
-        uintptr_t bestEntity = NULL;
+                if (antiflash) {
 
-        uintptr_t localPlayer = *(uintptr_t*)(BaseAddress + dwLocalPlayer);
-        Vec3* viewAngles = (Vec3*)(*(uintptr_t*)(baseEngine + dwClientState) + dwClientState_ViewAngles);
-        if (localPlayer != NULL) {
-
-            for (int i = 1; i < 16; i++)
-            {
-                uintptr_t Entity = *(uintptr_t*)(BaseAddress + dwEntityList + (i * 0x10));
-                if (Entity != NULL) {
-
-                    Vec3 LocalHeadPos;
-                    Vec3 EntityBonePos;
-
-                    uintptr_t EBonematrixBase = *(uintptr_t*)(Entity + m_dwBoneMatrix);
-                    BoneMatrix_t EntityBone = *(BoneMatrix_t*)(EBonematrixBase + (sizeof(EntityBone) * aimbotBone));
-                    EntityBonePos = { EntityBone.x, EntityBone.y, EntityBone.z };
-
-                    uintptr_t LBonematrixBase = *(uintptr_t*)(localPlayer + m_dwBoneMatrix);
-                    BoneMatrix_t LocalBone = *(BoneMatrix_t*)(LBonematrixBase + (sizeof(LocalBone) * 9));
-                    LocalHeadPos = { LocalBone.x, LocalBone.y, LocalBone.z };
-
-                    Vec3 TempAngles = CalcAngle(LocalHeadPos, EntityBonePos);
-                    Vec2 ScreenPosition;
-                    float vMatrix[16];
-                    memcpy(&vMatrix, (PBYTE*)(BaseAddress + dwViewMatrix), sizeof(vMatrix));
-                    if (WorldTooScreen(EntityBonePos, ScreenPosition, vMatrix, screenX, screenY)) {
-                        float dist = sqrt(powf((screenX / 2 - ScreenPosition.x), 2) + powf((screenY / 2 - ScreenPosition.y), 2));
-
-                        if (bestEntity == Entity || dist < closesEnt) {
-
-                            int localTeam = *(int*)(localPlayer + m_iTeamNum);
-                            int entityTeam = *(int*)(Entity + m_iTeamNum);
-
-                            if (entityTeam != localTeam) {
-                                bestEntity = Entity;
-                                closesEnt = dist;
-
-                                if (*(int*)(Entity + m_iHealth) > 0) {
-                                    Vec3* punchAngleOffs = (Vec3*)(localPlayer + m_aimPunchAngle);
-                                    Vec3 punchAngle = *punchAngleOffs * (aimbotRCS * 2);
-                                    TempAngles = TempAngles - punchAngle;
-
-                                    Vec3 CurrAngles = *viewAngles;
-                                    Vec3 Delta = TempAngles - CurrAngles;
-                                    Vec3 AimAngle = CurrAngles + (Delta / (aimbotSmoothing * 50));
-                                    AimAngle.normalize();
-                                    if (GetAsyncKeyState(VK_LBUTTON) && !GetAsyncKeyState(VK_RBUTTON)) {
-
-                                                *viewAngles = AimAngle;
-                                    }
-                                }
-                            }
-                        }
+                    int flashDur = 0;
+                    flashDur = *(int*)(LocalPlayer + m_flFlashDuration);
+                    if (flashDur > 0) {
+                        *(int*)(LocalPlayer + m_flFlashDuration) = 0;
                     }
                 }
-            }
-        }
-    }
 
-    if (triggerbot) {
+                if (radarhack) {
 
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
+                    int localTeam = *(int*)(LocalPlayer + m_iTeamNum);
 
-            int crosshairID = *(int*)(localPlayer + m_iCrosshairId);
-            int localTeam = *(int*)(localPlayer + m_iTeamNum);
-
-            if (crosshairID > 0 && crosshairID < 32) {
-
-                int Entity = *(int*)(BaseAddress + dwEntityList + (crosshairID - 1) * 0x10);
-                if (Entity != NULL) {
-
-                    int entityHealth = *(int*)(Entity + m_iHealth);
-                    int entityTeam = *(int*)(Entity + m_iTeamNum);
-
-                    if (entityTeam != localTeam && entityHealth > 0 && entityHealth <= 100) {
-
-                        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-                    }
-                }
-            }
-
-        }
-    }
-
-    if (antiflash) {
-
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
-
-            int flashDur = 0;
-
-            flashDur = *(int*)(localPlayer + m_flFlashDuration);
-            if (flashDur > 0) {
-                *(int*)(localPlayer + m_flFlashDuration) = 0;
-            }
-        }
-    }
-
-    if (radarhack) {
-        
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
-
-            int localTeam = *(int*)(localPlayer + m_iTeamNum);
-
-            for (int x = 1; x < 32; x++) {
-
-                int Entity = *(int*)(BaseAddress + dwEntityList + (x - 1) * 0x10);
-
-                if (Entity != NULL) {
                     int entityTeam = *(int*)(Entity + m_iTeamNum);
                     int entityDormant = *(int*)(Entity + m_bDormant);
 
@@ -397,56 +259,48 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
                         *(int*)(Entity + m_bSpotted) = 1;
                     }
                 }
+
+                if (awpcrosshair) {
+                    DrawFilledRect(screenX / 2 - 2, screenY / 2 - 2, 4, 4, FLOAT4TOD3DCOLOR(Colors::crosshairColor));
+                }
+
+                if (thirdperson) {
+
+
+                    *(int*)(LocalPlayer + m_iObserverMode) = 1;
+
+                    if (thirdperson == false) {
+
+                        *(int*)(LocalPlayer + m_iObserverMode) = 0;
+
+                    }
+                }
+
+                if (fovchanger) {
+
+                    *(int*)(LocalPlayer + m_iDefaultFOV) = fov;
+
+                }
+
+                if (rcs) {
+
+                    iShotsFired = (int*)(LocalPlayer + m_iShotsFired);
+                    aimRecoilPunch = (Vec3*)(LocalPlayer + m_aimPunchAngle);
+                    viewAngles = (Vec3*)(*(uintptr_t*)(baseEngine + dwClientState) + dwClientState_ViewAngles);
+
+                    Vec3 punchAngle = *aimRecoilPunch * (rcs_amount * 2);
+                    if (*iShotsFired > 1 && GetAsyncKeyState(VK_LBUTTON)) {
+                        Vec3 newAngle = *viewAngles + oPunch - punchAngle;
+                        newAngle.normalize();
+
+                        *viewAngles = newAngle;
+                    }
+                    oPunch = punchAngle;
+                }
+
+
+
             }
-        }
-    }
-
-    if (awpcrosshair) {
-        DrawFilledRect(screenX / 2 - 2, screenY / 2 - 2, 4, 4, FLOAT4TOD3DCOLOR(Colors::crosshairColor));
-    }
-
-    if (thirdperson) {
-
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
-
-            *(int*)(localPlayer + m_iObserverMode) = 1;
-
-            if (thirdperson == false) {
-
-                *(int*)(localPlayer + m_iObserverMode) = 0;
-
-            }
-        }
-    }
-
-    if (fovchanger) {
-        
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
-
-            *(int*)(localPlayer + m_iDefaultFOV) = fov;
-
-        }
-    }
-
-    if (rcs) {
-
-        int localPlayer = *(int*)(BaseAddress + dwLocalPlayer);
-        if (localPlayer != NULL) {
-
-            iShotsFired = (int*)(localPlayer + m_iShotsFired);
-            aimRecoilPunch = (Vec3*)(localPlayer + m_aimPunchAngle);
-            viewAngles = (Vec3*)(*(uintptr_t*)(baseEngine + dwClientState) + dwClientState_ViewAngles);
-
-            Vec3 punchAngle = *aimRecoilPunch * (rcs_amount * 2);
-            if (*iShotsFired > 1 && GetAsyncKeyState(VK_LBUTTON)) {
-                Vec3 newAngle = *viewAngles + oPunch - punchAngle;
-                newAngle.normalize();
-
-                *viewAngles = newAngle;
-            }
-            oPunch = punchAngle;
         }
     }
     
@@ -491,12 +345,6 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 o_pDevice)
         }
 
         if (ttab == 1) {
-            ImGui::Checkbox(xorstr(u8"Аимбот"), &aimbot);
-            if (aimbot) {
-                ImGui::SliderFloat(xorstr(u8"Аимбот RCS"), &aimbotRCS, 0.f, 1.f);
-                ImGui::SliderFloat(xorstr(u8"Аимбот Smoothing"), &aimbotSmoothing, 0.f, 1.f);
-            }
-            ImGui::Checkbox(xorstr(u8"ТриггерБот"), &triggerbot);
             ImGui::Checkbox(xorstr(u8"Контроль отдачи"), &rcs);
         }
         else if (ttab == 2) {
